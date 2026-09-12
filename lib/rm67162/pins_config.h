@@ -1,9 +1,12 @@
 #pragma once
 
 /***********************config*************************/
-#define LCD_USB_QSPI_DREVER 1
+// T-Display S3 AMOLED Plus (1.91") uses the 4-wire SPI interface (191_SPI profile):
+// MOSI(OL_MOSI)=18, DC(OL_DC)=7, SCK(OL_SCK)=47, CS(OL_CS)=6, RESET(OL_RESET)=17.
+// OLED power enable OL_EN = GPIO38 (PIN_LED). QSPI pins (D2=48, D3=5) are unused.
+#define LCD_USB_QSPI_DREVER 0
 
-#define SPI_FREQUENCY 75000000
+#define SPI_FREQUENCY 40000000
 #define TFT_SPI_MODE SPI_MODE0
 #define TFT_SPI_HOST SPI2_HOST
 

@@ -10,6 +10,55 @@ Original project https://github.com/valerio-vaccaro/HAN
 
 ![image](images/bgNerdMinerV2.png)
 
+## About this fork
+
+This fork ports **NerdMiner v2** to the **LILYGO T-Display S3 AMOLED Plus** (the "1.91 Plus" board).
+
+This board is frequently confused with the classic 1.91" model, but it differs in several ways that matter for the firmware:
+
+| Feature | Classic 1.91" AMOLED | AMOLED Plus (this fork) |
+|---|---|---|
+| Display interface | QSPI (D0-D3) | **4-wire SPI** (191_SPI profile) |
+| Display pins | 18 / 7 / 48 / 5 / 47 / 6 / 17 | MOSI=18, DC=7, SCK=47, CS=6, RST=17 (TE=9) |
+| Panel power | internal DCDC (OVSS regs) | **GPIO38 enables the panel; ELVDD/ELVSS supplied by the AXPM65611 PMU** |
+| Touch | CST816T on I2C (3,2) IRQ=21 | same CST816T on I2C (3,2) IRQ=21 |
+| Extras | - | AXPM65611 + BQ25896 PMU, PCF85063ATL RTC, TF card slot, LoRa module, 2x STEMMA QT |
+
+The display uses the SPI variant of the `rm67162` driver (`LCD_USB_QSPI_DREVER 0`) with an init sequence that mirrors the official LilyGO `rm67162_spi_cmd` — notably it does **not** program OVSS registers, because the OLED rails come from the board's PMU. The QSPI pins used by the classic board (D2=GPIO48, D3=GPIO5) are not connected on the Plus and are left unused.
+
+Touch is handled by a dedicated CST816T driver (`src/TouchHandlerCST816.*`) that shares the classic board's I2C bus (SDA=3, SCL=2, IRQ=21) with the PMU and RTC. It reports tap/zone and swipe gestures (swipe left/right switches screens, tap/up/down toggles the screen), with ISR-based reading and 300&nbsp;ms debounce.
+
+### Build
+
+Two PlatformIO environments are provided under the `NerdminerV2` project root:
+
+| Environment | Macro | Description |
+|---|---|---|
+| `NerdminerV2-S3-AMOLED` | `-DTOUCH=0` | Display only |
+| `NerdminerV2-S3-AMOLED-TOUCH` | `-DTOUCH=1` | Display + CST816T touch |
+
+```bash
+cd NerdMiner_v2-main
+python3 -m platformio run -e NerdminerV2-S3-AMOLED-TOUCH
+```
+
+Optionally include a board profile so the `lilygo-t-amoled` board is resolved from any project:
+
+```bash
+cp -r boards/lilygo-t-amoled.json ~/.platformio/boards/
+```
+
+### Flash
+
+```bash
+python3 -m platformio run -e NerdminerV2-S3-AMOLED-TOUCH -t upload --upload-port /dev/ttyACM0
+python3 -m platformio device monitor --port /dev/ttyACM0 --baud 115200
+```
+
+Upload speed is set to **460800** (the default 921600 can be unstable on this board). On Linux, make sure your user is in the `dialout` group.
+
+> **Note for Plus owners:** if the app boots (the "NerdMiner" WiFi AP appears) but the screen stays blank, the board is being driven in QSPI mode — the Plus only works in the SPI profile above.
+
 ## Requirements
 
 - TTGO T-Display S3 or any supported boards (check Build tutorial 👇)
@@ -49,6 +98,7 @@ Every time an stratum job notification is received miner update its current work
 - LILYGO T-Display 1.14 ([Aliexpress link\*](https://s.click.aliexpress.com/e/_DEqGvSJ))
 - LILYGO T-Display S3 AMOLED ([Aliexpress link\*](https://s.click.aliexpress.com/e/_DmOIK6j))
 - LILYGO T-Display S3 AMOLED Touch ([Board Info](https://www.lilygo.cc/products/t-display-s3-amoled?variant=43532279939253))
+- LILYGO T-Display S3 AMOLED Plus ([Board Info](https://www.lilygo.cc/products/t-display-s3-amoled?variant=43532279939253)) — display + touch (see fork section above)
 - LILYGO T-Dongle S3 ([Aliexpress link\*](https://s.click.aliexpress.com/e/_DmQCPyj))
 - ESP32-2432S028R 2,8" ([Aliexpress link\*](https://s.click.aliexpress.com/e/_DdXkvLv) / Dev support: @nitroxgas / ⚡jadeddonald78@walletofsatoshi.com)
 - ESP32-cam ([Board Info](https://lastminuteengineers.com/getting-started-with-esp32-cam/) / Dev support: @elmo128)
